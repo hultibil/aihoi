@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI HỎI????</title>
+    <!-- Tailwind CSS for utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for romantic typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base page reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05030a;
+            font-family: 'Dancing Script', cursive;
+            user-select: none;
+        }
+
+        /* Canvas for background glowing hearts & particles */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Container for text elements */
+        #textContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Keyframes for text fade in, float up slightly, and fade out */
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: scale(0.6) translate(-50%, -50%) rotate(var(--rot-start));
+                filter: blur(8px) brightness(0.8);
+            }
+            30% {
+                opacity: var(--max-opacity);
+                transform: scale(1.05) translate(-50%, -60%) rotate(var(--rot-mid));
+                filter: blur(0px) brightness(1.2);
+            }
+            70% {
+                opacity: var(--max-opacity);
+                transform: scale(1) translate(-50%, -70%) rotate(var(--rot-mid));
+                filter: blur(0px) brightness(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.8) translate(-50%, -90%) rotate(var(--rot-end));
+                filter: blur(6px) brightness(0.5);
+            }
+        }
+
+        /* Floating text style */
+        .love-text {
+            position: absolute;
+            white-space: nowrap;
+            will-change: transform, opacity, filter;
+            animation: fadeInOut var(--duration) ease-in-out forwards;
+            text-shadow: 0 0 10px rgba(255, 182, 193, 0.6),
+                         0 0 20px rgba(255, 105, 180, 0.4),
+                         0 0 35px rgba(255, 20, 147, 0.3);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.2s ease, text-shadow 0.2s ease;
+        }
+
+        .love-text:hover {
+            transform: scale(1.3) translate(-50%, -50%) !important;
+            text-shadow: 0 0 20px #fff, 0 0 30px #ff69b4, 0 0 40px #ff1493;
+            z-index: 100;
+        }
+
+        /* Subtle ambient glow overlay in center */
+        .ambient-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 80vh;
+            background: radial-gradient(circle, rgba(255, 105, 180, 0.08) 0%, rgba(255, 20, 147, 0.03) 40%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Subtle prompt for user audio interaction */
+        .audio-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 182, 193, 0.2);
+            border-radius: 9999px;
+            padding: 8px 16px;
+            color: #ffb6c1;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.2);
+        }
+
+        .audio-control:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            box-shadow: 0 0 25px rgba(255, 105, 180, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Subtle Ambient Glow -->
+    <div class="ambient-glow"></div>
+
+    <!-- Background Canvas for Falling Hearts & Sparkles -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Container for dynamic "AI HỎI?????" text -->
+    <div id="textContainer"></div>
+
+    <!-- Audio toggle button -->
+    <button id="audioBtn" class="audio-control flex items-center gap-2">
+        <svg id="musicIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
+            <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
+            <path d="M5 2.905a1 1 0 0 1 .9-.995l8-1A1 1 0 0 1 15 1.905V3l-9 1.125V2.905z"/>
+        </svg>
+        <span id="audioText">Bật Nhạc Nền</span>
+    </button>
+
+    <!-- Background music (romantic soft piano synth via Web Audio API) -->
+    <script>
+        // Romantic color palette: pinks, reds, soft whites, pastels
+        const colorPalette = [
+            '#ffffff', // Pure soft white
+            '#fff0f5', // Lavender blush
+            '#ffe4e1', // Misty rose
+            '#ffb6c1', // Light pink
+            '#ff69b4', // Hot pink
+            '#ff1493', // Deep pink
+            '#ff7b9c', // Pastel coral pink
+            '#e6005c', // Romantic crimson
+            '#f7aef8', // Soft pastel magenta
+            '#f3c4fb'  // Light violet pastel
+        ];
+
+        // Soft romantic font styles
+        const fonts = [
+            "'Dancing Script', cursive",
+            "'Great Vibes', cursive",
+            "'Caveat', cursive"
+        ];
+
+        const textContainer = document.getElementById('textContainer');
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- PARTICLE & HEART CANVAS ANIMATION ---
+        const particles = [];
+        const maxParticles = 60;
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height + height; // Start near or below bottom
+                this.size = Math.random() * 12 + 6;
+                this.speedY = Math.random() * 0.8 + 0.3; // Gentle upward floating
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.6 + 0.2;
+                this.color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                this.isHeart = Math.random() > 0.3; // 70% heart shapes, 30% soft glow dots
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.02;
+                this.pulseSpeed = Math.random() * 0.02 + 0.01;
+                this.pulse = Math.random() * Math.PI;
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.x += Math.sin(this.y * 0.01) * 0.5 + this.speedX;
+                this.rotation += this.rotSpeed;
+                this.pulse += this.pulseSpeed;
+
+                // Reset if moved past the top
+                if (this.y < -30) {
+                    this.reset();
+                    this.y = height + 20;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                const currentScale = 1 + Math.sin(this.pulse) * 0.15;
+                ctx.scale(currentScale, currentScale);
+                ctx.globalAlpha = this.opacity;
+
+                if (this.isHeart) {
+                    // Draw a soft heart shape
+                    ctx.fillStyle = this.color;
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    const topCurveHeight = this.size * 0.3;
+                    ctx.moveTo(0, topCurveHeight);
+                    ctx.bezierCurveTo(0, 0, -this.size / 2, 0, -this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(-this.size / 2, (this.size + topCurveHeight) / 2, 0, this.size, 0, this.size);
+                    ctx.bezierCurveTo(0, this.size, this.size / 2, (this.size + topCurveHeight) / 2, this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(this.size / 2, 0, 0, 0, 0, topCurveHeight);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // Draw glowing particle star/dot
+                    ctx.fillStyle = this.color;
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size / 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Initialize background particles
+        for (let i = 0; i < maxParticles; i++) {
+            const p = new Particle();
+            p.y = Math.random() * height; // Distribute initial Y positions
+            particles.push(p);
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // --- SPONTANEOUS FLOATING "AI HỎI?????" TEXT LOGIC ---
+        function createLoveText() {
+            const el = document.createElement('div');
+            el.className = 'love-text';
+            el.innerText = 'AI HỎI?????';
+
+            // Random position within safe screen margins (10% - 90%)
+            const posX = Math.random() * 80 + 10;
+            const posY = Math.random() * 80 + 10;
+
+            // Random attributes
+            const fontSize = Math.floor(Math.random() * 32) + 24; // 24px - 56px
+            const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+            const font = fonts[Math.floor(Math.random() * fonts.length)];
+            const duration = (Math.random() * 2.5 + 3.0).toFixed(2); // 3s to 5.5s lifecycle
+
+            // Subtle randomized rotation range for organic feel
+            const startRot = (Math.random() * 20 - 10).toFixed(1) + 'deg';
+            const midRot = (Math.random() * 10 - 5).toFixed(1) + 'deg';
+            const endRot = (Math.random() * 20 - 10).toFixed(1) + 'deg';
+
+            const maxOpacity = (Math.random() * 0.4 + 0.6).toFixed(2); // 0.6 to 1.0
+
+            // Apply inline custom properties for CSS animation
+            el.style.left = `${posX}%`;
+            el.style.top = `${posY}%`;
+            el.style.fontSize = `${fontSize}px`;
+            el.style.color = color;
+            el.style.fontFamily = font;
+            el.style.setProperty('--duration', `${duration}s`);
+            el.style.setProperty('--rot-start', startRot);
+            el.style.setProperty('--rot-mid', midRot);
+            el.style.setProperty('--rot-end', endRot);
+            el.style.setProperty('--max-opacity', maxOpacity);
+
+            // Click heart burst effect on text tap/click
+            el.addEventListener('click', (e) => {
+                createHeartBurst(e.clientX, e.clientY);
+            });
+
+            textContainer.appendChild(el);
+
+            // Remove DOM element when animation completes
+            setTimeout(() => {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            }, duration * 1000);
+        }
+
+        // Heart Burst effect on user click/touch
+        function createHeartBurst(x, y) {
+            const burstCount = 8;
+            for (let i = 0; i < burstCount; i++) {
+                const burstHeart = document.createElement('div');
+                burstHeart.innerHTML = '❤️';
+                burstHeart.style.position = 'absolute';
+                burstHeart.style.left = `${x}px`;
+                burstHeart.style.top = `${y}px`;
+                burstHeart.style.fontSize = `${Math.random() * 16 + 14}px`;
+                burstHeart.style.pointerEvents = 'none';
+                burstHeart.style.zIndex = '99';
+                burstHeart.style.transition = 'all 1s cubic-bezier(0.1, 0.8, 0.3, 1)';
+                
+                textContainer.appendChild(burstHeart);
+
+                const angle = (Math.PI * 2 / burstCount) * i + Math.random() * 0.5;
+                const distance = Math.random() * 80 + 40;
+                const targetX = x + Math.cos(angle) * distance;
+                const targetY = y + Math.sin(angle) * distance - 30;
+
+                requestAnimationFrame(() => {
+                    burstHeart.style.left = `${targetX}px`;
+                    burstHeart.style.top = `${targetY}px`;
+                    burstHeart.style.opacity = '0';
+                    burstHeart.style.transform = 'scale(1.8) rotate(' + (Math.random() * 60 - 30) + 'deg)';
+                });
+
+                setTimeout(() => burstHeart.remove(), 1000);
+            }
+        }
+
+        // Continuous Loop Controller: keeps spawning "AI HỎI?????" continuously
+        function spawnLoop() {
+            // Maintain around 12 to 20 text elements active simultaneously on screen
+            const activeCount = textContainer.childElementCount;
+            if (activeCount < 18) {
+                createLoveText();
+            }
+
+            // Random delay between spawns (150ms to 450ms) for natural rhythm
+            const nextDelay = Math.random() * 300 + 150;
+            setTimeout(spawnLoop, nextDelay);
+        }
+
+        // Pre-fill screen with initial texts so it doesn't feel empty on load
+        for (let i = 0; i < 8; i++) {
+            setTimeout(createLoveText, i * 200);
+        }
+
+        // Start continuous spawning loop
+        spawnLoop();
+
+        // Optional interactive touch/click to spawn immediately
+        window.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                createHeartBurst(e.clientX, e.clientY);
+            }
+        });
+
+        // --- OPTIONAL SOFT ROMANTIC AUDIO SYNTHESIZER ---
+        let audioCtx = null;
+        let isPlaying = false;
+        let intervalId = null;
+
+        const audioBtn = document.getElementById('audioBtn');
+        const audioText = document.getElementById('audioText');
+
+        // Pentatonic romantic chord frequencies (Arpeggiated Piano-like soft notes)
+        const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+
+        function playSoftNote() {
+            if (!audioCtx || !isPlaying) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            const freq = notes[Math.floor(Math.random() * notes.length)];
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.5);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 2.5);
+        }
+
+        audioBtn.addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (isPlaying) {
+                isPlaying = false;
+                clearInterval(intervalId);
+                audioText.innerText = 'Bật Nhạc Nền';
+            } else {
+                isPlaying = true;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                audioText.innerText = 'Tắt Nhạc Nền';
+                playSoftNote();
+                intervalId = setInterval(playSoftNote, 800);
+            }
+        });
+    </script>
+</body>
+</html>
